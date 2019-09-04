@@ -36,14 +36,12 @@ from pystruct.utils import SaveLogger
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-
 path = 'data_train.pickle'
 with open(path, 'rb') as f:
     buf = f.read()
     # print(buf)
 
-
-data_train = pickle.load(open("data_train.pickle", 'rb'),encoding='latin1')
+data_train = pickle.load(open("data_train.pickle", 'rb'), encoding='latin1')
 C = 0.01
 
 n_states = 21
@@ -66,7 +64,7 @@ ssvm = learners.NSlackSSVM(
     inactive_threshold=1e-3, inactive_window=10, batch_size=100)
 ssvm.fit(data_train['X'], data_train['Y'])
 
-data_val = pickle.load(open("data_val.pickle"))
+data_val = pickle.load(open("data_val.pickle", 'rb'), encoding='latin1')
 y_pred = ssvm.predict(data_val['X'])
 
 # we throw away void superpixels and flatten everything
