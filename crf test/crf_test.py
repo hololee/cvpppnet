@@ -1,75 +1,60 @@
-"""
-===========================================
-Semantic Image Segmentation on Pascal VOC
-===========================================
-This example demonstrates learning a superpixel CRF
-for semantic image segmentation.
-To run the experiment, please download the pre-processed data from:
-http://www.ais.uni-bonn.de/deep_learning/downloads.html
-
-The data consists of superpixels, unary potentials, and the connectivity
-structure of the superpixels.
-The unary potentials were originally provided by Philipp Kraehenbuehl:
-http://graphics.stanford.edu/projects/densecrf/
-
-The superpixels were extracted using SLIC.
-The code for generating the connectivity graph and edge features will be made
-available soon.
-
-This example does not contain the proper evaluation on pixel level, as that
-would need the Pascal VOC 2010 dataset.
-"""
-import os
-
+import sys
 import numpy as np
+import matplotlib.pyplot as plt
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+path = "/home/dpakhom1/dense_crf_python/"
+sys.path.append(path)
 
-from pystruct import learners
-import pystruct.models as crfs
-from pystruct.utils import SaveLogger
+import pydensecrf.densecrf as dcrf
 
-# gpu setting
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from pydensecrf.utils import compute_unary, create_pairwise_bilateral, create_pairwise_gaussian, softmax_to_unary
 
-path = 'data_train.pickle'
-with open(path, 'rb') as f:
-    buf = f.read()
-    # print(buf)
+import skimage.io as io
 
-data_train = pickle.load(open("data_train.pickle", 'rb'), encoding='latin1')
-C = 0.01
+image = train_image
 
-n_states = 21
-print("number of samples: %s" % len(data_train['X']))
-class_weights = 1. / np.bincount(np.hstack(data_train['Y']))
-class_weights *= 21. / np.sum(class_weights)
-print(class_weights)
+softmax = final_probabilities.squeeze()
 
-model = crfs.EdgeFeatureGraphCRF(inference_method='qpbo',
-                                 class_weight=class_weights,
-                                 symmetric_edge_features=[0, 1],
-                                 antisymmetric_edge_features=[2])
+# processed_probabilities: result of vgg
+softmax = processed_probabilities.transpose((2, 0, 1))
 
-experiment_name = "edge_features_one_slack_trainval_%f" % C
+# The input should be the negative of the logarithm of probability values
+# Look up the definition of the softmax_to_unary for more information
+unary = softmax_to_unary(processed_probabilities)
 
-ssvm = learners.NSlackSSVM(
-    model, verbose=2, C=C, max_iter=100000, n_jobs=-1,
-    tol=0.0001, show_loss_every=5,
-    logger=SaveLogger(experiment_name + ".pickle", save_every=100),
-    inactive_threshold=1e-3, inactive_window=10, batch_size=100)
-ssvm.fit(data_train['X'], data_train['Y'])
+# The inputs should be C-continious -- we are using Cython wrapper
+unary = np.ascontiguousarray(unary)
 
-data_val = pickle.load(open("data_val.pickle", 'rb'), encoding='latin1')
-y_pred = ssvm.predict(data_val['X'])
+d = dcrf.DenseCRF(image.shape[0] * image.shape[1], 2)
 
-# we throw away void superpixels and flatten everything
-y_pred, y_true = np.hstack(y_pred), np.hstack(data_val['Y'])
-y_pred = y_pred[y_true != 255]
-y_true = y_true[y_true != 255]
+d.setUnaryEnergy(unary)
 
-print("Score on validation set: %f" % np.mean(y_true == y_pred))
+# This potential penalizes small pieces of segmentation that are
+# spatially isolated -- enforces more spatially consistent segmentations
+feats = create_pairwise_gaussian(sdims=(10, 10), shape=image.shape[:2])
+
+d.addPairwiseEnergy(feats, compat=3,
+                    kernel=dcrf.DIAG_KERNEL,
+                    normalization=dcrf.NORMALIZE_SYMMETRIC)
+
+# This creates the color-dependent features --
+# because the segmentation that we get from CNN are too coarse
+# and we can use local color features to refine them
+feats = create_pairwise_bilateral(sdims=(50, 50), schan=(20, 20, 20),
+                                  img=image, chdim=2)
+
+d.addPairwiseEnergy(feats, compat=10,
+                    kernel=dcrf.DIAG_KERNEL,
+                    normalization=dcrf.NORMALIZE_SYMMETRIC)
+Q = d.inference(5)
+
+res = np.argmax(Q, axis=0).reshape((image.shape[0], image.shape[1]))
+
+cmap = plt.get_cmap('bwr')
+
+f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+ax1.imshow(res, vmax=1.5, vmin=-0.4, cmap=cmap)
+ax1.set_title('Segmentation with CRF post-processing')
+probability_graph = ax2.imshow(np.dstack((train_annotation,) * 3) * 100)
+ax2.set_title('Ground-Truth Annotation')
+plt.show()

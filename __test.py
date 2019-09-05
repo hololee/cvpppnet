@@ -1,4 +1,4 @@
-import placeholders as holder
+import batch_norm as holder
 import tensorflow as tf
 
 sum = holder.holder1 + holder.holder2
