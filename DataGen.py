@@ -55,6 +55,7 @@ class DataGen:
         # change range  0 to 1
         # self.fg_images = self.fg_images / np.amax(self.fg_images)
 
+
         return self.fg_images
 
     # get total number.

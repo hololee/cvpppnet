@@ -29,6 +29,10 @@ dataG = DataGen()
 rgb_images = np.array(dataG.load_images())
 fg_images = np.array(dataG.load_labels())
 
+
+# TODO: change 0 value to 1, becuase pydefcrf do not use 0
+fg_images = np.where(fg_images == 0, 32, fg_images)
+
 # reshape
 fg_images = np.reshape(fg_images, [fg_images.shape[0], fg_images.shape[1], fg_images.shape[2], 1])
 
@@ -59,7 +63,7 @@ gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 64, "layer2
 # step 2
 gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 128, "layer3", method.FUNC_RELU,
                                 BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 128, "layer4_pooling", method.FUNC_RELU,
+gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 128, "layer4_pooling", method.FUNC_RELU,
                                 BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
 
 # step 3
@@ -67,7 +71,7 @@ gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 256, "layer
                                 BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
 gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 256, "layer6", method.FUNC_RELU,
                                 BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 256, "layer7_pooling", method.FUNC_RELU,
+gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 256, "layer7_pooling", method.FUNC_RELU,
                                 BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
 
 # step 3
@@ -146,21 +150,20 @@ with tf.Session() as sess:
                 # image_result_predict = image_result_predict / np.amax(image_result_predict)
 
                 # process crf.
-                h, w = dataG.getImageSize()
-                output_crf = method.dense_crf(img=batch_x, probs=image_result_predict, n_iters=5)
+                # h, w = dataG.getImageSize()
+                # output_crf = method.dense_crf(img=batch_x, probs=image_result_predict, n_iters=5)
 
                 ## TODO output crf data Nan
                 fig = plt.figure()
                 fig.set_size_inches(9, 4)  # 1800 x600
-                ax1 = fig.add_subplot(1, 4, 1)
-                ax2 = fig.add_subplot(1, 4, 2)
-                ax3 = fig.add_subplot(1, 4, 3)
-                ax4 = fig.add_subplot(1, 4, 4)
+                ax1 = fig.add_subplot(1, 3, 1)
+                ax2 = fig.add_subplot(1, 3, 2)
+                ax3 = fig.add_subplot(1, 3, 3)
+
 
                 ax1.imshow(batch_x[0])
                 ax2.imshow(np.squeeze(batch_y[0]), cmap='jet')
                 ax3.imshow(np.squeeze(image_result_predict[0]), cmap='jet')
-                ax4.imshow(np.squeeze(output_crf[0]), cmap='jet')
 
                 plt.show()
 

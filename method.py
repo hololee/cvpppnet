@@ -63,7 +63,7 @@ def bi_linear_interpolation(input_map, original_map_size=(530, 500)):
 def process_crf(image, predict, height, width, n_classes):
     d = dcrf.DenseCRF2D(width, height, n_classes)
     U = -np.log(predict)  # Unary potential.
-    U = U.transpose(2, 1, 0).reshape((n_classes, -1))
+    U = U.transpose(2, 0, 1).reshape((n_classes, -1))
     d.setUnaryEnergy(U)
 
     # if image is not None:
