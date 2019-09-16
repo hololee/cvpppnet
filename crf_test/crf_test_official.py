@@ -117,7 +117,7 @@ MAP = np.argmax(Q, axis=0)
 # Note that there is no "unknown" here anymore, no matter what we had at first.
 MAP = colorize[MAP, :]
 # TODO: save image
-# imwrite(fn_output, MAP.reshape(img.shape))
+
 
 # Just randomly manually run inference iterations
 Q, tmp1, tmp2 = d.startInference()
@@ -126,7 +126,7 @@ for i in range(5):
     d.stepInference(Q, tmp1, tmp2)
 
 # draw
-for i in range(20):
+for i in range(25):
     fig = plt.figure()
     fig.set_size_inches(9, 3)  # 1800 x600
 
@@ -137,7 +137,7 @@ for i in range(20):
 
     ax1.set_title("origin")
     ax2.set_title("output")
-    ax3.set_title("adjust CRF_{}".format(i + 4))
+    ax3.set_title("adjust CRF_{}".format(i))
     ax4.set_title("final")
 
     ax1.imshow(img)
@@ -145,15 +145,19 @@ for i in range(20):
 
     final_result = MAP.reshape(img.shape)
     temp = np.zeros(final_result.shape)
-    temp[np.where(final_result > i + 4)] = 255
+    temp[np.where(final_result > i)] = 255
     # temp[np.where(final_result <= i + 4)] = 0
+
+    # to decide the dividing range, using iou
 
     ax3.imshow(temp)
 
     temp2 = np.copy(img)
-    temp2[np.where(final_result > i + 4)] = 255
-    temp2[np.where(final_result <= i + 4)] = 0
+    temp2[np.where(final_result <= i)] = 0
 
     ax4.imshow(temp2)
+
+    # save image.
+    imwrite(fn_output, temp2)
 
     plt.show()
