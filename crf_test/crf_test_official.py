@@ -128,34 +128,39 @@ for i in range(5):
 # draw
 for i in range(25):
     fig = plt.figure()
-    fig.set_size_inches(9, 3)  # 1800 x600
+    fig.set_size_inches(10, 2)  # 1800 x600
 
-    ax1 = fig.add_subplot(1, 4, 1)
-    ax2 = fig.add_subplot(1, 4, 2)
-    ax3 = fig.add_subplot(1, 4, 3)
-    ax4 = fig.add_subplot(1, 4, 4)
+    ax1 = fig.add_subplot(1, 5, 1)
+    ax2 = fig.add_subplot(1, 5, 2)
+    ax3 = fig.add_subplot(1, 5, 3)
+    ax4 = fig.add_subplot(1, 5, 4)
+    ax5 = fig.add_subplot(1, 5, 5)
 
     ax1.set_title("origin")
     ax2.set_title("output")
-    ax3.set_title("adjust CRF_{}".format(i))
-    ax4.set_title("final")
+    ax3.set_title("after CRF")
+    ax4.set_title("masking : over.{}".format(i))
+    ax5.set_title("final")
 
     ax1.imshow(img)
     ax2.imshow(anno_rgb)
 
     final_result = MAP.reshape(img.shape)
+
+    ax3.imshow(final_result)
+
     temp = np.zeros(final_result.shape)
     temp[np.where(final_result > i)] = 255
     # temp[np.where(final_result <= i + 4)] = 0
 
     # to decide the dividing range, using iou
 
-    ax3.imshow(temp)
+    ax4.imshow(temp)
 
     temp2 = np.copy(img)
     temp2[np.where(final_result <= i)] = 0
 
-    ax4.imshow(temp2)
+    ax5.imshow(temp2)
 
     # save image.
     imwrite(fn_output, temp2)
