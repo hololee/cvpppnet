@@ -125,19 +125,35 @@ for i in range(5):
     print("KL-divergence at {}: {}".format(i, d.klDivergence(Q)))
     d.stepInference(Q, tmp1, tmp2)
 
-fig = plt.figure()
-fig.set_size_inches(9, 3)  # 1800 x600
+# draw
+for i in range(20):
+    fig = plt.figure()
+    fig.set_size_inches(9, 3)  # 1800 x600
 
-ax1 = fig.add_subplot(1, 3, 1)
-ax2 = fig.add_subplot(1, 3, 2)
-ax3 = fig.add_subplot(1, 3, 3)
+    ax1 = fig.add_subplot(1, 4, 1)
+    ax2 = fig.add_subplot(1, 4, 2)
+    ax3 = fig.add_subplot(1, 4, 3)
+    ax4 = fig.add_subplot(1, 4, 4)
 
-ax1.set_title("origin")
-ax2.set_title("output")
-ax3.set_title("adjust CRF")
+    ax1.set_title("origin")
+    ax2.set_title("output")
+    ax3.set_title("adjust CRF_{}".format(i + 4))
+    ax4.set_title("final")
 
-ax1.imshow(img)
-ax2.imshow(anno_rgb, cmap="jet")
-ax3.imshow(MAP.reshape(img.shape), cmap="jet")
+    ax1.imshow(img)
+    ax2.imshow(anno_rgb)
 
-plt.show()
+    final_result = MAP.reshape(img.shape)
+    temp = np.zeros(final_result.shape)
+    temp[np.where(final_result > i + 4)] = 255
+    # temp[np.where(final_result <= i + 4)] = 0
+
+    ax3.imshow(temp)
+
+    temp2 = np.copy(img)
+    temp2[np.where(final_result > i + 4)] = 255
+    temp2[np.where(final_result <= i + 4)] = 0
+
+    ax4.imshow(temp2)
+
+    plt.show()

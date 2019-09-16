@@ -22,11 +22,11 @@ for image_names in all_file_list:
 # change to ndarray
 label_images = np.array(label_images, dtype=np.float32)
 label_images = np.where(label_images == 0, 32, label_images)
+label_images = label_images / 255
 
 for i in range(len(label_images)):
-    result = tf.nn.softmax(label_images[i], dim=0)
     with tf.Session() as sess:
-        soft = sess.run(result)
 
-        plt.imshow(np.squeeze(soft))
+        plt.imshow(label_images[i], cmap="jet")
+        plt.colorbar()
         plt.show()
