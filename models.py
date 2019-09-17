@@ -29,7 +29,6 @@ dataG = DataGen()
 rgb_images = np.array(dataG.load_images())
 fg_images = np.array(dataG.load_labels())
 
-
 # TODO: change 0 value to 1, becuase pydefcrf do not use 0
 fg_images = np.where(fg_images == 0, 32, fg_images)
 
@@ -98,13 +97,15 @@ gen_convolution = method.bi_linear_interpolation(gen_convolution)
 # predict
 predict_images = gen_convolution
 # loss
-flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 1))
-flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 1))
+# (batch_size, num_classes)
+# num_classes = 2 : background, plant
+flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 2))
+flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 2))
 
 # more than two classes, use soft_max_cross_entropy.
 # less than two classes, use sigmoid_cross_entropy.
-cross_entropies = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=flat_logits,
-                                                                        labels=flat_labels))
+cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+                                                                        labels=flat_labels, dim=-1))
 
 optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(cross_entropies)
 
@@ -159,7 +160,6 @@ with tf.Session() as sess:
                 ax1 = fig.add_subplot(1, 3, 1)
                 ax2 = fig.add_subplot(1, 3, 2)
                 ax3 = fig.add_subplot(1, 3, 3)
-
 
                 ax1.imshow(batch_x[0])
                 ax2.imshow(np.squeeze(batch_y[0]), cmap='jet')

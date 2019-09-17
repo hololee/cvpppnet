@@ -16,8 +16,8 @@ except ImportError:
 
 from pydensecrf.utils import unary_from_labels, create_pairwise_bilateral, create_pairwise_gaussian
 
-fn_im = "/data1/LJH/cvpppnet/crf_test/plant001_rgb.png"
-fn_anno = "/data1/LJH/cvpppnet/crf_test/output_000.png"
+fn_im = "/data1/LJH/cvpppnet/A1/plant002_rgb.png"
+fn_anno = "/data1/LJH/cvpppnet/A1_predict/output_001.png"
 fn_output = "/data1/LJH/cvpppnet/crf_test/output.png"
 
 ##################################
