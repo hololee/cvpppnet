@@ -1,4 +1,4 @@
-from scipy.misc import imread, imsave, imresize
+from scipy.misc import imread
 import numpy as np
 import os
 import config_etc
@@ -13,28 +13,35 @@ class DataGen:
         all_file_list = os.listdir(self.dir)
         all_file_list.sort()
 
+        # file name.
         self.rgbs_name = []
         self.fgs_name = []
+        self.insfgs_name = []
 
+        # image arrays.
         self.rgb_images = []
         self.fg_images = []
+        self.insfg_images = []
 
-        # slect origin images.
-
+        # add images as list.
         for titles in all_file_list:
             if '_rgb' in titles:
                 print(titles + ": color image")
                 # color images
                 self.rgbs_name.append(titles)
-
-            if '_fg' in titles:
+            elif '_fg' in titles:
                 print(titles + ": foreground")
                 # foregrounds
                 self.fgs_name.append(titles)
 
+            elif '_label' in titles:
+                print(titles + ": instance ground truth")
+                self.insfgs_name.append(titles)
+
         print("\n==========================================")
         # number of total images.
         self.total_number = len(self.rgbs_name)
+        # all images have same size.
         print("number of total data : {}".format(len(self.rgbs_name)))
         print("==========================================\n")
 
@@ -55,8 +62,13 @@ class DataGen:
         # change range  0 to 1
         # self.fg_images = self.fg_images / np.amax(self.fg_images)
 
-
         return self.fg_images
+
+    def load_instance_labels(self):
+        for image_names in self.insfgs_name:
+            real_path = self.dir + "/" + image_names
+            # load images.
+            self.insfg_images.append(imread(real_path, mode='L'))
 
     # get total number.
     def getTotalNumber(self):

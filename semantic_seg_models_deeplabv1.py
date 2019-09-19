@@ -53,43 +53,43 @@ ph = placeHolders(input_images=rgb_images, input_labels=fg_images)
 ########### layer
 # first step
 # get_shape("input data: {}", input_data)
-gen_convolution = method.layers(method.TYPE_NORMAL, ph.input_data, 64, "layer1", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, ph.input_data, 64, "layer1", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
 
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 64, "layer2_pooling", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 64, "layer2_pooling", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
 
 # step 2
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 128, "layer3", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 128, "layer4_pooling", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 128, "layer3", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_ATROUS, gen_convolution, 128, "layer4_pooling", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
 
 # step 3
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 256, "layer5", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 256, "layer6", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 256, "layer7_pooling", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 256, "layer5", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 256, "layer6", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_ATROUS, gen_convolution, 256, "layer7_pooling", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling={'size': 2, 'stride': 2})
 
 # step 3
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 512, "layer8", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 512, "layer9", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 512, "layer10_atrous", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 512, "layer11", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 512, "layer12", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
-gen_convolution = method.layers(method.TYPE_ATROUS, gen_convolution, 512, "layer13_atrous", method.FUNC_RELU,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 512, "layer8", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 512, "layer9", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_ATROUS, gen_convolution, 512, "layer10_atrous", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 512, "layer11", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 512, "layer12", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_ATROUS, gen_convolution, 512, "layer13_atrous", method.FUNC_RELU,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=True), pooling=None)
 
 # for target one
-gen_convolution = method.layers(method.TYPE_NORMAL, gen_convolution, 1, "layer13_finish", method.NONE,
-                                BatchNorm(is_train=ph.is_train, use_batch_norm=False), pooling=None)
+gen_convolution = method.layers_deeplab(method.TYPE_NORMAL, gen_convolution, 1, "layer13_finish", method.NONE,
+                                        BatchNorm(is_train=ph.is_train, use_batch_norm=False), pooling=None)
 
 # bi interpolation, to original size.
 gen_convolution = method.bi_linear_interpolation(gen_convolution)
