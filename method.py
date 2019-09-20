@@ -113,39 +113,42 @@ def layer_enet_bottle_neck(input_map, layer_type, training, name):
         weighted = tf.nn.conv2d(weighted, weight_regular, strides=[1, 1, 1, 1], padding="SAME",
                                 name=name + "_regular")
 
-    # # 다른 conv 방식.
-    # elif layer_type["type"] == "dilated":
-    #     weight_dilated = tf.Variable(tf.random_normal(
-    #         shape=[layer_type["conv_size"], layer_type["conv_size"], weighted.get_shape().as_list()[3],
-    #                weighted.get_shape().as_list()[3]], stddev=config_etc.TRAIN_STDDV), name=name + "_dilated")
-    #     weighted = tf.nn.atrous_conv2d(weighted, weight_dilated, rate=layer_type["dilated_rate"], padding="SAME")
-    #
-    # elif layer_type["type"] == "transpose_conv":
-    #     weight_deconv = tf.Variable(tf.random_normal(
-    #         shape=[layer_type["conv_size"], layer_type["conv_size"], weighted.get_shape().as_list()[3],
-    #                weighted.get_shape().as_list()[3]], stddev=config_etc.TRAIN_STDDV), name=name + "_dilated")
-    #     weighted = tf.nn.conv2d_transpose(input, weight_deconv,
-    #                                       output_shape=[weighted.get_shape().as_list()[0],
-    #                                                     weighted.get_shape().as_list()[1] * 2,
-    #                                                     weighted.get_shape().as_list()[2] * 2,
-    #                                                     weighted.get_shape().as_list()[-1]],
-    #                                       strides=[1, 2, 2, 1], padding='SAME')
-    #
-    # elif layer_type["type"] == "asymmetric":
-    #     asymmetric_w_1 = tf.Variable(
-    #         tf.random_normal(
-    #             [layer_type["asymmetric_rate"], 1, weighted.get_shape().as_list()[3],
-    #              weighted.get_shape().as_list()[3]],
-    #             stddev=config_etc.TRAIN_STDDV), name=name + "_asymmetric1")
-    #     weighted = tf.nn.conv2d(weighted, asymmetric_w_1, strides=[1, 1, 1, 1], padding="SAME")
-    #     asymmetric_w_2 = tf.Variable(
-    #         tf.random_normal(
-    #             [1, layer_type["asymmetric_rate"], weighted.get_shape().as_list()[3],
-    #              weighted.get_shape().as_list()[3]],
-    #             stddev=config_etc.TRAIN_STDDV), name=name + "_asymmetric2")
-    #     weighted = tf.nn.conv2d(weighted, asymmetric_w_2, strides=[1, 1, 1, 1], padding="SAME")
+    # 다른 conv 방식.
+    elif layer_type["type"] == "dilated":
+        weight_dilated = tf.Variable(tf.random_normal(
+            shape=[layer_type["conv_size"], layer_type["conv_size"], weighted.get_shape().as_list()[3],
+                   weighted.get_shape().as_list()[3]], stddev=config_etc.TRAIN_STDDV), name=name + "_dilated")
+        weighted = tf.nn.atrous_conv2d(weighted, weight_dilated, rate=layer_type["dilated_rate"], padding="SAME")
 
-    print("┌ step_conv : {}".format(weighted.get_shape()))
+    elif layer_type["type"] == "transpose_conv":
+        reduced_depth = input_map.get_shape().as_list()[3] // layer_type["projection_ratio"]
+
+        weight_deconv = tf.Variable(tf.random_normal(
+            shape=[layer_type["conv_size"], layer_type["conv_size"], weighted.get_shape().as_list()[3],
+                   weighted.get_shape().as_list()[3]], stddev=config_etc.TRAIN_STDDV), name=name + "_transpose_conv")
+
+        weighted = tf.nn.conv2d_transpose(value=weighted, filter=weight_deconv,
+                                          output_shape=[weighted.get_shape().as_list()[0],
+                                                        weighted.get_shape().as_list()[1] * 2,
+                                                        weighted.get_shape().as_list()[2] * 2, reduced_depth],
+                                          strides=[1, 2, 2, 1], padding="SAME")
+
+
+    elif layer_type["type"] == "asymmetric":
+        asymmetric_w_1 = tf.Variable(
+            tf.random_normal(
+                [layer_type["asymmetric_rate"], 1, weighted.get_shape().as_list()[3],
+                 weighted.get_shape().as_list()[3]],
+                stddev=config_etc.TRAIN_STDDV), name=name + "_asymmetric1")
+        weighted = tf.nn.conv2d(weighted, asymmetric_w_1, strides=[1, 1, 1, 1], padding="SAME")
+        asymmetric_w_2 = tf.Variable(
+            tf.random_normal(
+                [1, layer_type["asymmetric_rate"], weighted.get_shape().as_list()[3],
+                 weighted.get_shape().as_list()[3]],
+                stddev=config_etc.TRAIN_STDDV), name=name + "_asymmetric2")
+        weighted = tf.nn.conv2d(weighted, asymmetric_w_2, strides=[1, 1, 1, 1], padding="SAME")
+
+    print("┌ step_conv_{} : {}".format(layer_type["type"], weighted.get_shape()))
     weighted = p_relu(weighted, name=name + "alpha2")
     weighted = tf.layers.batch_normalization(weighted, center=True, scale=True, training=training)
 
@@ -165,19 +168,18 @@ def layer_enet_bottle_neck(input_map, layer_type, training, name):
         max_pool = tf.nn.max_pool(input_map, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME",
                                   name=name + "_downsamp")
 
-        # if layer_type["ver"] == 1 and name == "bottleneck1_0":
+        if layer_type["ver"] != "full_conv":
+            inputs_shape = input_map.get_shape().as_list()
+            depth_to_pad = abs(inputs_shape[3] - layer_type["target_dim"])
 
-        inputs_shape = input_map.get_shape().as_list()
-        depth_to_pad = abs(inputs_shape[3] - layer_type["target_dim"])
+            # padding 0 dims
+            paddings = tf.convert_to_tensor([[0, 0], [0, 0], [0, 0], [0, depth_to_pad]])
+            max_pool = tf.pad(max_pool, paddings=paddings, name=name + '_padding')
 
-        # padding 0 dims
-        paddings = tf.convert_to_tensor([[0, 0], [0, 0], [0, 0], [0, depth_to_pad]])
-        max_pool = tf.pad(max_pool, paddings=paddings, name=name + '_padding')
+            # TODO : why using add?
+            weighted = tf.add(weighted, max_pool)
 
-        # TODO : why using add?
-        weighted = tf.add(weighted, max_pool)
-
-        print("┌ step(down_sampling) : {}".format(weighted.get_shape()))
+            print("┌ # step(down_sampling) : {}".format(weighted.get_shape()))
 
     print("layer({}) : {}".format(name, weighted.get_shape()))
 
