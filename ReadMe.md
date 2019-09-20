@@ -1,8 +1,6 @@
 ## **File information**
 
 
-####instructuion
-
 * `batch_norm.py`  
 class for using batch normalization.
 
@@ -30,6 +28,8 @@ the output(predict_train) images will be saved in **_A1_predict_** folder.
 
 * `semantic_seg_apply_crf.py`  
 crf applied images in _**A1_predict**_ and save image into **_A1_predict_crf_**
+
+
 
 
 
