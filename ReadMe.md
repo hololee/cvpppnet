@@ -1,7 +1,7 @@
 ## **File information**
 
 
-####instructuion
+###instructuion
 
 * `batch_norm.py`  
 class for using batch normalization.
