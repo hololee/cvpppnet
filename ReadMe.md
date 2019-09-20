@@ -1,8 +1,5 @@
 ## **File information**
 
-
-###instructuion
-
 * `batch_norm.py`  
 class for using batch normalization.
 
