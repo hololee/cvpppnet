@@ -159,9 +159,10 @@ with tf.Session() as sess:
 
             for index, image in enumerate(image_result_predict):
                 # save image.
-                suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
-                scipy.misc.imsave('/data1/LJH/cvpppnet/A1_predict_enet/plant_out_{}.png'.format(suffix),
-                                  np.squeeze(image))
+                suffix = datetime.datetime.now().strftime("%H%M%S")
+                scipy.misc.imsave(
+                    '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
+                    np.squeeze(image))
 
             if batch_count % 4 == 0:
                 # calculate loss.
