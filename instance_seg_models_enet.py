@@ -13,7 +13,7 @@ import time
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 ## ready dataset .
 dataG = DataGen()
@@ -21,12 +21,15 @@ dataG = DataGen()
 # loaded images numpy array.
 rgb_images = np.array(dataG.load_images())
 fg_images = np.array(dataG.load_labels())
+ins_images = np.array(dataG.load_instance_labels())
 
 # reshape
 fg_images = np.reshape(fg_images, [fg_images.shape[0], fg_images.shape[1], fg_images.shape[2], 1])
+ins_images = np.reshape(ins_images, [ins_images.shape[0], ins_images.shape[1], ins_images.shape[2], 1])
 
 print("rgb_images : " + str(np.shape(rgb_images)))
 print("fg_images : " + str(np.shape(fg_images)))
+print("ins_images : " + str(np.shape(ins_images)))
 
 # create input place hodler and apply.
 ph = placeHolders(input_images=rgb_images, input_labels=fg_images)
@@ -42,7 +45,7 @@ print(ph.input_data.get_shape())
 # net = md.layer_Enet_initial(input, name="initial")
 
 
-######################### Encoder Part ########################
+######################### Encoder Part ######################## conclude par1 & part2
 # ==== ver 1
 net = md.layer_enet_bottle_neck(net, layer_type={"ver": 1, "type": "regular", "down_sampling": True, "conv_size": 3,
                                                  "target_dim": 64, "projection_ratio": 4},
@@ -95,72 +98,174 @@ net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "d
                                 training=ph.is_train,
                                 name="bottleneck2_8")
 
-# ==== ver3
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck3_1")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 2},
-                                training=ph.is_train,
-                                name="bottleneck3_2")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "asymmetric_rate": 5},
-                                training=ph.is_train,
-                                name="bottleneck3_3")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 4},
-                                training=ph.is_train,
-                                name="bottleneck3_4")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck3_5")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 8},
-                                training=ph.is_train,
-                                name="bottleneck3_6")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "asymmetric_rate": 5},
-                                training=ph.is_train,
-                                name="bottleneck3_7")
-net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
-                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
-                                training=ph.is_train,
-                                name="bottleneck3_8")
-
-######################### Decoder Part1 -  ########################
+# ===============================================   Embedding branch   =================================================
+embedding = md.layer_enet_bottle_neck(net,
+                                      layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck3_1")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4, "dilated_rate": 2},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_2")
+embedding = md.layer_enet_bottle_neck(embedding, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False,
+                                                             "conv_size": 3,
+                                                             "target_dim": 128, "projection_ratio": 4,
+                                                             "asymmetric_rate": 5},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_3")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4, "dilated_rate": 4},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_4")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck3_5")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4, "dilated_rate": 8},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_6")
+embedding = md.layer_enet_bottle_neck(embedding, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False,
+                                                             "conv_size": 3,
+                                                             "target_dim": 128, "projection_ratio": 4,
+                                                             "asymmetric_rate": 5},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_7")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
+                                      training=ph.is_train,
+                                      name="em_bottleneck3_8")
 # ==== ver 4
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False, "conv_size": 3,
-                                            "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck4_0")
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": 4, "type": "regular", "down_sampling": False, "conv_size": 3,
-                                            "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck4_1")
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": 4, "type": "regular", "down_sampling": False, "conv_size": 3,
-                                            "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck4_2")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False,
+                                                  "conv_size": 3,
+                                                  "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck4_0")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 4, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck4_1")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 4, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck4_2")
 
 # ==== ver 5
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": 5, "type": "transpose_conv", "down_sampling": False, "conv_size": 3,
-                                            "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck5_0")
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": 5, "type": "regular", "down_sampling": False, "conv_size": 3,
-                                            "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
-                                name="bottleneck5_1")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 5, "type": "transpose_conv", "down_sampling": False,
+                                                  "conv_size": 3,
+                                                  "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck5_0")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": 5, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                  "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_bottleneck5_1")
 
 # fullconv
-net = md.layer_enet_bottle_neck(net,
-                                layer_type={"ver": "full_conv", "type": "transpose_conv", "down_sampling": False,
-                                            "conv_size": 3,
-                                            "target_dim": num_classes, "projection_ratio": 4}, training=ph.is_train,
-                                name="full_conv")
+embedding = md.layer_enet_bottle_neck(embedding,
+                                      layer_type={"ver": "full_conv", "type": "transpose_conv", "down_sampling": False,
+                                                  "conv_size": 3,
+                                                  "target_dim": 2, "projection_ratio": 4}, training=ph.is_train,
+                                      name="em_full_conv")
+
+# ===============================================   Segmentation branch   ==============================================
+segmentation = md.layer_enet_bottle_neck(net,
+                                         layer_type={"ver": 2, "type": "regular", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck3_1")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "dilated", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4, "dilated_rate": 2},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_2")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4,
+                                                     "asymmetric_rate": 5},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_3")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "dilated", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4, "dilated_rate": 4},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_4")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "regular", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck3_5")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "dilated", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4, "dilated_rate": 8},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_6")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4,
+                                                     "asymmetric_rate": 5},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_7")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 2, "type": "dilated", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
+                                         training=ph.is_train,
+                                         name="seg_bottleneck3_8")
+# ==== ver 4
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck4_0")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 4, "type": "regular", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck4_1")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 4, "type": "regular", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck4_2")
+
+# ==== ver 5
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 5, "type": "transpose_conv", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck5_0")
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": 5, "type": "regular", "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 16, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_bottleneck5_1")
+
+# fullconv
+segmentation = md.layer_enet_bottle_neck(segmentation,
+                                         layer_type={"ver": "full_conv", "type": "transpose_conv",
+                                                     "down_sampling": False,
+                                                     "conv_size": 3,
+                                                     "target_dim": 1, "projection_ratio": 4}, training=ph.is_train,
+                                         name="seg_full_conv")
+
+# ======================================= End seg======================================================================
 
 # predict
-predict_images = net
+predict_images = segmentation
+embedding_outputs = embedding
+
+##########===============================   Calculate segmentation loss  =======================================########
+
 # loss
 # (batch_size, num_classes)
 # num_classes = 2 : background, plant
@@ -169,10 +274,29 @@ flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 2))
 
 # more than two classes, use soft_max_cross_entropy.
 # less than two classes, use sigmoid_cross_entropy.
-cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
-                                                                        labels=flat_labels, dim=-1))
+seg_cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+                                                                            labels=flat_labels, dim=-1))
 
-optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(cross_entropies)
+# seg_optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(seg_cross_entropies)
+
+##########===============================   Calculate embedding loss  ==========================================########
+
+print("shape : {}".format(embedding_outputs.get_shape()))
+
+pix_image_shape = (embedding_outputs.get_shape().as_list()[1], embedding_outputs.get_shape().as_list()[2])
+
+instance_segmentation_loss, l_var, l_dist, l_reg = md.discriminative_loss(
+    embedding_outputs, ph.ins_label, 2,
+    pix_image_shape, 0.5, 3.0, 1.0, 1.0, 0.001
+)
+
+#########================================= Calculate total loss =================================================#######
+
+total_loss = seg_cross_entropies + instance_segmentation_loss
+optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(total_loss)
+
+#########================================= Train two network.===================================================########
+
 
 # train
 BATCH_COUNT = dataG.getTotalNumber() // config_etc.BATCH_SIZE
@@ -191,17 +315,22 @@ with tf.Session() as sess:
         for batch_count in range(BATCH_COUNT):
 
             # get source batch
-            batch_x, batch_y = dataG.next_batch(total_images=rgb_images, total_labels=fg_images)
+            batch_x, batch_y, batch_z = dataG.next_batch(total_images=rgb_images, total_labels=fg_images,
+                                                         total_islabels=ins_images)
 
             # train.
             extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             _, _ = sess.run([optimizer, extra_update_ops], feed_dict={ph.input_data: batch_x,
                                                                       ph.ground_truth: batch_y,
+                                                                      ph.ins_label: batch_z,
                                                                       ph.is_train: True,
                                                                       ph.learning_rate: learn_rate})
 
             image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})
+            embedding_result_predict = sess.run(embedding_outputs,
+                                                feed_dict={ph.input_data: batch_x, ph.is_train: False})
 
+            # embedding
             if epoch == (config_etc.TOTAL_EPOCH - 1):
                 for index, image in enumerate(image_result_predict):
                     # save image.
@@ -212,9 +341,10 @@ with tf.Session() as sess:
 
             if batch_count % 4 == 0:
                 # calculate loss.
-                loss = sess.run(cross_entropies, feed_dict={ph.input_data: batch_x,
-                                                            ph.ground_truth: batch_y,
-                                                            ph.is_train: False})
+                loss = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
+                                                       ph.ins_label: batch_z,
+                                                       ph.ground_truth: batch_y,
+                                                       ph.is_train: False})
 
                 print("train_loss : {}".format(loss))
                 print("image_result_predict # min : {} , max : {}".format(np.amin(image_result_predict),
@@ -236,7 +366,22 @@ with tf.Session() as sess:
                 ax3 = fig.add_subplot(1, 3, 3)
 
                 ax1.imshow(batch_x[0])
-                ax2.imshow(np.squeeze(batch_y[0]), cmap='jet')
-                ax3.imshow(np.squeeze(image_result_predict[0]), cmap='jet')
+                # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
+
+                temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
+                temp[np.where(temp > 40)] = 255
+                temp[np.where(temp <= 40)] = 0
+
+                ax2.imshow(np.squeeze(temp), cmap='jet')
+                if epoch == (config_etc.TOTAL_EPOCH - 1):
+                    try:
+                        mask, _ = md.apply_clustering(
+                            binary_seg_result=temp,
+                            instance_seg_result=embedding_result_predict[0])
+
+                        ax3.imshow(mask)
+
+                    except Exception as ex:
+                        print("error occured")
 
                 plt.show()

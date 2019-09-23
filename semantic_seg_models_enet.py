@@ -8,6 +8,9 @@ import config_etc
 import matplotlib.pyplot as plt
 import scipy.misc
 import datetime
+import time
+
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -38,6 +41,8 @@ net = md.layer_Enet_initial(ph.input_data, name="initial")
 print(ph.input_data.get_shape())
 # net = md.layer_Enet_initial(input, name="initial")
 
+
+######################### Encoder Part ########################
 # ==== ver 1
 net = md.layer_enet_bottle_neck(net, layer_type={"ver": 1, "type": "regular", "down_sampling": True, "conv_size": 3,
                                                  "target_dim": 64, "projection_ratio": 4},
@@ -89,6 +94,40 @@ net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "d
                                                  "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
                                 training=ph.is_train,
                                 name="bottleneck2_8")
+
+# ==== ver3
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                name="bottleneck3_1")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 2},
+                                training=ph.is_train,
+                                name="bottleneck3_2")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "asymmetric_rate": 5},
+                                training=ph.is_train,
+                                name="bottleneck3_3")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 4},
+                                training=ph.is_train,
+                                name="bottleneck3_4")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
+                                name="bottleneck3_5")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 8},
+                                training=ph.is_train,
+                                name="bottleneck3_6")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "asymmetric", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "asymmetric_rate": 5},
+                                training=ph.is_train,
+                                name="bottleneck3_7")
+net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "down_sampling": False, "conv_size": 3,
+                                                 "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
+                                training=ph.is_train,
+                                name="bottleneck3_8")
+
+######################### Decoder Part1 -  ########################
 # ==== ver 4
 net = md.layer_enet_bottle_neck(net,
                                 layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False, "conv_size": 3,
@@ -143,6 +182,12 @@ with tf.Session() as sess:
     for epoch in range(config_etc.TOTAL_EPOCH):
         print("======= current epoch  : {} ======".format(epoch + 1))
 
+        learn_rate = config_etc.LEARNING_RATE
+        if epoch > 65:
+            learn_rate = config_etc.LEARNING_RATE_v2
+        if epoch > 100:
+            learn_rate = config_etc.LEARNING_RATE_v3
+
         for batch_count in range(BATCH_COUNT):
 
             # get source batch
@@ -153,16 +198,17 @@ with tf.Session() as sess:
             _, _ = sess.run([optimizer, extra_update_ops], feed_dict={ph.input_data: batch_x,
                                                                       ph.ground_truth: batch_y,
                                                                       ph.is_train: True,
-                                                                      ph.learning_rate: config_etc.LEARNING_RATE})
+                                                                      ph.learning_rate: learn_rate})
 
             image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})
 
-            for index, image in enumerate(image_result_predict):
-                # save image.
-                suffix = datetime.datetime.now().strftime("%H%M%S")
-                scipy.misc.imsave(
-                    '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
-                    np.squeeze(image))
+            if epoch == (config_etc.TOTAL_EPOCH - 1):
+                for index, image in enumerate(image_result_predict):
+                    # save image.
+                    suffix = current_milli_time()
+                    scipy.misc.imsave(
+                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
+                        np.squeeze(image))
 
             if batch_count % 4 == 0:
                 # calculate loss.

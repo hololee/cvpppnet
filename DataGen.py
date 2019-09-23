@@ -70,6 +70,8 @@ class DataGen:
             # load images.
             self.insfg_images.append(imread(real_path, mode='L'))
 
+        return self.insfg_images
+
     # get total number.
     def getTotalNumber(self):
         return self.total_number
@@ -80,11 +82,13 @@ class DataGen:
         return np.shape(np.array(self.rgb_images))[1], np.shape(np.array(self.rgb_images))[2]
 
     # next batch.
-    def next_batch(self, total_images, total_labels):
+    def next_batch(self, total_images, total_labels, total_islabels):
 
         batch_size = config_etc.BATCH_SIZE
 
-        sub_batch_x, sub_batch_y = total_images[self.batch_flag: self.batch_flag + batch_size], total_labels[
-                                                                                                self.batch_flag:self.batch_flag + batch_size]
+        sub_batch_x, sub_batch_y, sub_batch_z = total_images[
+                                                self.batch_flag: self.batch_flag + batch_size], total_labels[
+                                                                                                self.batch_flag:self.batch_flag + batch_size], total_islabels[
+                                                                                                                                               self.batch_flag:self.batch_flag + batch_size]
         self.batch_flag = (self.batch_flag + batch_size) % len(total_images)
-        return sub_batch_x, sub_batch_y
+        return sub_batch_x, sub_batch_y, sub_batch_z
