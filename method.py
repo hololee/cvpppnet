@@ -5,6 +5,7 @@ import pydensecrf.densecrf as dcrf
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
+import cv2
 
 # convolution type.
 TYPE_NORMAL = 'normal'
@@ -14,14 +15,21 @@ TYPE_ATROUS = 'atrous'
 FUNC_RELU = 'relu'
 NONE = 'none'
 
-color_map = [np.array([255, 0, 0]),
-             np.array([0, 255, 0]),
+color_map = [np.array([229, 43, 80]),
+             np.array([255, 191, 0]),
+             np.array([153, 102, 204]),
+             np.array([251, 206, 177]),
+             np.array([127, 255, 212]),
+             np.array([0, 127, 255]),
+             np.array([137, 207, 240]),
+             np.array([245, 245, 220]),
              np.array([0, 0, 255]),
-             np.array([125, 125, 0]),
-             np.array([0, 125, 125]),
-             np.array([125, 0, 125]),
-             np.array([50, 100, 50]),
-             np.array([100, 50, 100])]
+             np.array([0, 149, 182]),
+             np.array([138, 43, 226]),
+             np.array([222, 93, 131]),
+             np.array([205, 127, 50]),
+             np.array([150, 75, 0]),
+             np.array([127, 255, 0]), ]
 
 
 # deeplab model layer
@@ -348,8 +356,31 @@ def discriminative_loss(prediction, correct_label, feature_dim, image_shape,
     return disc_loss, l_var, l_dist, l_reg
 
 
+def _morphological_process(image, kernel_size=5):
+    """
+    morphological process to fill the hole in the binary segmentation result
+    :param image:
+    :param kernel_size:
+    :return:
+    """
+    if len(image.shape) == 3:
+        raise ValueError('Binary segmentation result image should be a single channel image')
+
+    if image.dtype is not np.uint8:
+        image = np.array(image, np.uint8)
+
+    kernel = cv2.getStructuringElement(shape=cv2.MORPH_ELLIPSE, ksize=(kernel_size, kernel_size))
+
+    # close operation fille hole
+    closing = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+    return closing
+
+
 def apply_clustering(binary_seg_result, instance_seg_result):
     # get embedding feats and coords
+
+    binary_seg_result = _morphological_process(binary_seg_result)
 
     idx = np.where(binary_seg_result == 255)
     lane_embedding_feats = instance_seg_result[idx]
@@ -358,9 +389,10 @@ def apply_clustering(binary_seg_result, instance_seg_result):
     # dbscan cluster
     db = DBSCAN(eps=config_etc.DBSCAN_EPS, min_samples=config_etc.DBSCAN_MIN_SAMPLES)
     try:
-        features = StandardScaler().fit_transform(np.reshape(lane_embedding_feats, (-1, 1)))
+        features = StandardScaler().fit_transform(lane_embedding_feats)
         # features = StandardScaler().fit_transform(lane_embedding_feats)
         db.fit(features)
+        # db.fit(lane_embedding_feats)
     except Exception as err:
         print("error: {0}".format(err))
         return None

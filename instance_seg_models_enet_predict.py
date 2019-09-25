@@ -2,7 +2,7 @@ import method as md
 import tensorflow as tf
 import numpy as np
 import os
-from DataGen import DataGen
+from DataGenTest import DataGen
 from placeHolders import placeHolders
 import config_etc
 import matplotlib.pyplot as plt
@@ -37,13 +37,9 @@ ph = placeHolders(input_images=rgb_images, input_labels=fg_images)
 ## network set.
 num_classes = 1
 
-input = tf.zeros(shape=[10, 512, 512, 3])
-
 # ==== initial
 net = md.layer_Enet_initial(ph.input_data, name="initial")
 print(ph.input_data.get_shape())
-# net = md.layer_Enet_initial(input, name="initial")
-
 
 ######################### Encoder Part ######################## conclude par1 & part2
 # ==== ver 1
@@ -300,88 +296,72 @@ optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(tota
 
 # train
 BATCH_COUNT = dataG.getTotalNumber() // config_etc.BATCH_SIZE
+
+# saver.
+saver = tf.train.Saver(max_to_keep=None)
+
 with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+    saver.restore(sess, tf.train.latest_checkpoint('./saved_models/'))
 
-    for epoch in range(config_etc.TOTAL_EPOCH):
-        print("======= current epoch  : {} ======".format(epoch + 1))
+    for batch_count in range(BATCH_COUNT):
 
-        learn_rate = config_etc.LEARNING_RATE
-        if epoch > 65:
-            learn_rate = config_etc.LEARNING_RATE_v2
-        if epoch > 100:
-            learn_rate = config_etc.LEARNING_RATE_v3
+        # get source batch
+        batch_x, batch_y, batch_z = dataG.next_batch(total_images=rgb_images, total_labels=fg_images,
+                                                     total_islabels=ins_images)
 
-        for batch_count in range(BATCH_COUNT):
+        image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})
+        embedding_result_predict = sess.run(embedding_outputs,
+                                            feed_dict={ph.input_data: batch_x, ph.is_train: False})
 
-            # get source batch
-            batch_x, batch_y, batch_z = dataG.next_batch(total_images=rgb_images, total_labels=fg_images,
-                                                         total_islabels=ins_images)
+        # embedding
 
-            # train.
-            extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            _, _ = sess.run([optimizer, extra_update_ops], feed_dict={ph.input_data: batch_x,
-                                                                      ph.ground_truth: batch_y,
-                                                                      ph.ins_label: batch_z,
-                                                                      ph.is_train: True,
-                                                                      ph.learning_rate: learn_rate})
+        # for index, image in enumerate(image_result_predict):
+        #     # save image.
+        #     suffix = current_milli_time()
+        #     scipy.misc.imsave(
+        #         '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
+        #         np.squeeze(image))
 
-            image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})
-            embedding_result_predict = sess.run(embedding_outputs,
-                                                feed_dict={ph.input_data: batch_x, ph.is_train: False})
 
-            # embedding
-            if epoch == (config_etc.TOTAL_EPOCH - 1):
-                for index, image in enumerate(image_result_predict):
-                    # save image.
-                    suffix = current_milli_time()
-                    scipy.misc.imsave(
-                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
-                        np.squeeze(image))
+        # calculate loss.
+        total_loss_val = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
+                                                         ph.ins_label: batch_z,
+                                                         ph.ground_truth: batch_y,
+                                                         ph.is_train: False})
+        seg_loss_val, ins_loss_val = sess.run([seg_cross_entropies, instance_segmentation_loss],
+                                              feed_dict={ph.input_data: batch_x,
+                                                         ph.ins_label: batch_z,
+                                                         ph.ground_truth: batch_y,
+                                                         ph.is_train: False})
 
-            if batch_count % 4 == 0:
-                # calculate loss.
-                loss = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
-                                                       ph.ins_label: batch_z,
-                                                       ph.ground_truth: batch_y,
-                                                       ph.is_train: False})
+        print("train_loss : {} , seg : {}, ins : {}".format(total_loss_val, seg_loss_val, ins_loss_val))
+        print("image_result_predict # min : {} , max : {}".format(np.amin(image_result_predict),
+                                                                  np.amax(image_result_predict)))
 
-                print("train_loss : {}".format(loss))
-                print("image_result_predict # min : {} , max : {}".format(np.amin(image_result_predict),
-                                                                          np.amax(image_result_predict)))
+        for bat_idx in range(len(batch_x)):
+            fig = plt.figure()
+            fig.set_size_inches(9, 4)  # 1800 x600
+            ax1 = fig.add_subplot(1, 3, 1)
+            ax2 = fig.add_subplot(1, 3, 2)
+            ax3 = fig.add_subplot(1, 3, 3)
 
-                # a = tf.nn.softmax(image_result_predict, dim=0)
-                # image_result = sess.run(a)
-                # after calculating loss. adjust softmax.
-                # image_result_predict = image_result_predict / np.amax(image_result_predict)
+            ax1.imshow(batch_x[bat_idx])
+            # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
 
-                # process crf.
-                # h, w = dataG.getImageSize()
-                # output_crf = method.dense_crf(img=batch_x, probs=image_result_predict, n_iters=5)
+            temp = image_result_predict[bat_idx] * 255 // np.amax(image_result_predict[bat_idx])
+            temp[np.where(temp > config_etc.THRESHOLD_RATE)] = 255
+            temp[np.where(temp <= config_etc.THRESHOLD_RATE)] = 0
 
-                fig = plt.figure()
-                fig.set_size_inches(9, 4)  # 1800 x600
-                ax1 = fig.add_subplot(1, 3, 1)
-                ax2 = fig.add_subplot(1, 3, 2)
-                ax3 = fig.add_subplot(1, 3, 3)
+            ax2.imshow(np.squeeze(temp), cmap='jet')
 
-                ax1.imshow(batch_x[0])
-                # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
+            try:
+                mask, _ = md.apply_clustering(
+                    binary_seg_result=np.squeeze(temp),
+                    instance_seg_result=embedding_result_predict[bat_idx])
 
-                temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
-                temp[np.where(temp > 40)] = 255
-                temp[np.where(temp <= 40)] = 0
+                ax3.imshow(mask)
 
-                ax2.imshow(np.squeeze(temp), cmap='jet')
-                if epoch == (config_etc.TOTAL_EPOCH - 1):
-                    try:
-                        mask, _ = md.apply_clustering(
-                            binary_seg_result=temp,
-                            instance_seg_result=embedding_result_predict[0])
+            except Exception as ex:
+                print("error: {0}".format(ex))
 
-                        ax3.imshow(mask)
-
-                    except Exception as ex:
-                        print("error occured")
-
-                plt.show()
+            plt.show()
