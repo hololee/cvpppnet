@@ -82,7 +82,7 @@ class DataGen:
         return np.shape(np.array(self.rgb_images))[1], np.shape(np.array(self.rgb_images))[2]
 
     # next batch.
-    def next_batch(self, total_images, total_labels, total_islabels):
+    def next_batch_ins(self, total_images, total_labels, total_islabels):
 
         batch_size = config_etc.BATCH_SIZE
 
@@ -92,3 +92,14 @@ class DataGen:
                                                                                                                                                self.batch_flag:self.batch_flag + batch_size]
         self.batch_flag = (self.batch_flag + batch_size) % len(total_images)
         return sub_batch_x, sub_batch_y, sub_batch_z
+
+    # next batch.
+    def next_batch(self, total_images, total_labels):
+
+        batch_size = config_etc.BATCH_SIZE
+
+        sub_batch_x, sub_batch_y = total_images[
+                                   self.batch_flag: self.batch_flag + batch_size], total_labels[
+                                                                                   self.batch_flag:self.batch_flag + batch_size]
+        self.batch_flag = (self.batch_flag + batch_size) % len(total_images)
+        return sub_batch_x, sub_batch_y

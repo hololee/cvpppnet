@@ -306,7 +306,7 @@ with tf.Session() as sess:
     for batch_count in range(BATCH_COUNT):
 
         # get source batch
-        batch_x, batch_y, batch_z = dataG.next_batch(total_images=rgb_images, total_labels=fg_images,
+        batch_x, batch_y, batch_z = dataG.next_batch_ins(total_images=rgb_images, total_labels=fg_images,
                                                      total_islabels=ins_images)
 
         image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})

@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 
-dir1 = '/data1/LJH/cvpppnet/A2/'
+dir1 = '/data1/LJH/cvpppnet/A3/'
 
 
 all_img_list = os.listdir(dir1)

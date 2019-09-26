@@ -319,7 +319,7 @@ with tf.Session() as sess:
         for batch_count in range(BATCH_COUNT):
 
             # get source batch
-            batch_x, batch_y, batch_z = dataG.next_batch(total_images=rgb_images, total_labels=fg_images,
+            batch_x, batch_y, batch_z = dataG.next_batch_ins(total_images=rgb_images, total_labels=fg_images,
                                                          total_islabels=ins_images)
 
             # train.
@@ -395,4 +395,4 @@ with tf.Session() as sess:
                     except Exception as ex:
                         print("error occured")
 
-                # plt.show()
+                plt.show()
