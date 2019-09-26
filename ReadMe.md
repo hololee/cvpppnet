@@ -1,3 +1,10 @@
+## **istruction**
+check  
+* 'Towards End-to-End Lane Detection: an Instance Segmentation'
+* 'ENet: A Deep Neural Network Architecture for Real-Time Semantic Segmentation'
+* 'Towards End-to-End Lane Detection: an Instance Segmentation'
+
+
 ## **File information**
 
 * `batch_norm.py`  
