@@ -268,14 +268,18 @@ embedding_outputs = embedding
 
 # loss
 # (batch_size, num_classes)
-# num_classes = 2 : background, plant
-flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 2))
-flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 2))
+# num_classes = 2 : background, plant TODO: one-hot encode to image.
+flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 1))
+flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 1))
+# flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 2))
+# flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 2))
 
 # more than two classes, use soft_max_cross_entropy.
 # less than two classes, use sigmoid_cross_entropy.
-seg_cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
-                                                                            labels=flat_labels, dim=-1))
+# seg_cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+#                                                                             labels=flat_labels, dim=-1))
+
+seg_cross_entropies = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(flat_labels, flat_logits))))
 
 # seg_optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(seg_cross_entropies)
 
@@ -320,7 +324,7 @@ with tf.Session() as sess:
 
             # get source batch
             batch_x, batch_y, batch_z = dataG.next_batch_ins(total_images=rgb_images, total_labels=fg_images,
-                                                         total_islabels=ins_images)
+                                                             total_islabels=ins_images)
 
             # train.
             extra_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -345,7 +349,7 @@ with tf.Session() as sess:
 
                 saver.save(sess, '/data1/LJH/cvpppnet/saved_models/model')
 
-            if batch_count % 4 == 0:
+            if batch_count % 8 == 0:
                 # calculate loss.
                 total_loss_val = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
                                                                  ph.ins_label: batch_z,
@@ -378,10 +382,10 @@ with tf.Session() as sess:
 
                 ax1.imshow(batch_x[0])
                 # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
-
-                temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
-                temp[np.where(temp > 40)] = 255
-                temp[np.where(temp <= 40)] = 0
+                temp = image_result_predict[0]
+                # temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
+                # temp[np.where(temp > 40)] = 255
+                # temp[np.where(temp <= 40)] = 0
 
                 ax2.imshow(np.squeeze(temp), cmap='jet')
                 if epoch == (config_etc.TOTAL_EPOCH - 1):

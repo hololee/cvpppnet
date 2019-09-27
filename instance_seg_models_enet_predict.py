@@ -264,14 +264,16 @@ embedding_outputs = embedding
 
 # loss
 # (batch_size, num_classes)
-# num_classes = 2 : background, plant
-flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 2))
-flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 2))
+#TODO : num_classes = 2 : background, plant , when using cross entropy
+flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 1))
+flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 1))
 
 # more than two classes, use soft_max_cross_entropy.
 # less than two classes, use sigmoid_cross_entropy.
-seg_cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
-                                                                            labels=flat_labels, dim=-1))
+# seg_cross_entropies = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=flat_logits,
+#                                                                             labels=flat_labels, dim=-1))
+
+seg_cross_entropies = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(flat_labels, flat_logits))))
 
 # seg_optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(seg_cross_entropies)
 
@@ -307,7 +309,7 @@ with tf.Session() as sess:
 
         # get source batch
         batch_x, batch_y, batch_z = dataG.next_batch_ins(total_images=rgb_images, total_labels=fg_images,
-                                                     total_islabels=ins_images)
+                                                         total_islabels=ins_images)
 
         image_result_predict = sess.run(predict_images, feed_dict={ph.input_data: batch_x, ph.is_train: False})
         embedding_result_predict = sess.run(embedding_outputs,
@@ -321,7 +323,6 @@ with tf.Session() as sess:
         #     scipy.misc.imsave(
         #         '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
         #         np.squeeze(image))
-
 
         # calculate loss.
         total_loss_val = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
@@ -348,9 +349,19 @@ with tf.Session() as sess:
             ax1.imshow(batch_x[bat_idx])
             # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
 
+
+
+            # temp = image_result_predict[bat_idx]
+            # temp = sess.run(tf.nn.softmax(temp))
+            # temp = sess.run(tf.argmax(temp, axis=-1))
+
+            # temp = image_result_predict[bat_idx]
+
+            # TODO : very important.!!!
             temp = image_result_predict[bat_idx] * 255 // np.amax(image_result_predict[bat_idx])
-            temp[np.where(temp > config_etc.THRESHOLD_RATE)] = 255
-            temp[np.where(temp <= config_etc.THRESHOLD_RATE)] = 0
+            temp[np.where(temp > 40)] = 255
+            temp[np.where(temp <= 40)] = 0
+
 
             ax2.imshow(np.squeeze(temp), cmap='jet')
 
