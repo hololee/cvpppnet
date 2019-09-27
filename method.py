@@ -29,7 +29,12 @@ color_map = [np.array([229, 43, 80]),
              np.array([222, 93, 131]),
              np.array([205, 127, 50]),
              np.array([150, 75, 0]),
-             np.array([127, 255, 0]), ]
+             np.array([127, 255, 0]),
+             np.array([114, 160, 193]),
+             np.array([176, 191, 26]),
+             np.array([240, 248, 255]),
+             np.array([241, 156, 187]),
+             np.array([77, 0, 64]), ]
 
 
 # deeplab model layer
