@@ -389,20 +389,21 @@ def apply_clustering(binary_seg_result, instance_seg_result):
     binary_seg_result = _morphological_process(binary_seg_result)
 
     idx = np.where(binary_seg_result == 255)
-    lane_embedding_feats = instance_seg_result[idx]
-    lane_coordinate = np.vstack((idx[1], idx[0])).transpose()
+    embedding_feats = instance_seg_result[idx]
+    coordinate = np.vstack((idx[1], idx[0])).transpose()
 
     # dbscan cluster
     db = DBSCAN(eps=config_etc.DBSCAN_EPS, min_samples=config_etc.DBSCAN_MIN_SAMPLES)
     try:
-        features = StandardScaler().fit_transform(lane_embedding_feats)
-        # features = StandardScaler().fit_transform(lane_embedding_feats)
+        features = StandardScaler().fit_transform(embedding_feats)
+        # features = StandardScaler().fit_transform(embedding_feats)
         db.fit(features)
-        # db.fit(lane_embedding_feats)
+        # db.fit(embedding_feats)
     except Exception as err:
         print("error: {0}".format(err))
         return None
 
+    # TODO: check the output of clustering.
     db_labels = db.labels_
     unique_labels = np.unique(db_labels)
 
@@ -411,22 +412,21 @@ def apply_clustering(binary_seg_result, instance_seg_result):
     cluster_centers = db.components_
 
     mask = np.zeros(shape=[binary_seg_result.shape[0], binary_seg_result.shape[1], 3], dtype=np.uint8)
-    coord = lane_coordinate
 
     if db_labels is None:
         return None, None
 
-    lane_coords = []
+    coords = []
 
     for index, label in enumerate(unique_labels.tolist()):
         if label == -1:
             continue
         idx = np.where(db_labels == label)
-        pix_coord_idx = tuple((coord[idx][:, 1], coord[idx][:, 0]))
+        pix_coord_idx = tuple((coordinate[idx][:, 1], coordinate[idx][:, 0]))
         mask[pix_coord_idx] = color_map[index]
-        lane_coords.append(coord[idx])
+        coords.append(coordinate[idx])
 
-    return mask, lane_coords
+    return mask, coords
 
 
 # ====== crf ========
