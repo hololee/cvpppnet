@@ -10,8 +10,11 @@ import scipy.misc
 import datetime
 import time
 
+# threshold value
+threshold_val = 40
+
 # calculate time for file name.
-# current_milli_time = lambda: int(round(time.time() * 1000))
+current_milli_time = lambda: int(round(time.time() * 1000))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
@@ -344,11 +347,9 @@ with tf.Session() as sess:
                 for index, image in enumerate(image_result_predict):
                     # save image.
                     scipy.misc.imsave(
-                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, index),
+                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1,
+                                                                                            current_milli_time()),
                         np.squeeze(image))
-
-                # save model params.
-                saver.save(sess, '/data1/LJH/cvpppnet/saved_models/model')
 
             # calculate loss.
             if batch_count % 8 == 0:
@@ -375,29 +376,33 @@ with tf.Session() as sess:
                 # h, w = dataG.getImageSize()
                 # output_crf = method.dense_crf(img=batch_x, probs=image_result_predict, n_iters=5)
 
-                fig = plt.figure()
-                fig.set_size_inches(9, 4)  # 1800 x600
-                ax1 = fig.add_subplot(1, 3, 1)
-                ax2 = fig.add_subplot(1, 3, 2)
-                ax3 = fig.add_subplot(1, 3, 3)
-
-                ax1.imshow(batch_x[0])
-                # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
-                temp = image_result_predict[0]
-                # temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
-                # temp[np.where(temp > 40)] = 255
-                # temp[np.where(temp <= 40)] = 0
-
-                ax2.imshow(np.squeeze(temp), cmap='jet')
                 if epoch == (config_etc.TOTAL_EPOCH - 1):
                     try:
+                        fig = plt.figure()
+                        fig.set_size_inches(9, 4)  # 1800 x600
+                        ax1 = fig.add_subplot(1, 3, 1)
+                        ax2 = fig.add_subplot(1, 3, 2)
+                        ax3 = fig.add_subplot(1, 3, 3)
+
+                        ax1.imshow(batch_x[0])
+                        # ax2.imshow(np.squeeze(batch_y[0]), cmap='jet') # g.t
+                        # temp = image_result_predict[0]
+                        temp = image_result_predict[0] * 255 // np.amax(image_result_predict[0])
+                        temp[np.where(temp > threshold_val)] = 255
+                        temp[np.where(temp <= threshold_val)] = 0
+
+                        ax2.imshow(np.squeeze(temp), cmap='jet')
+
                         mask, _ = md.apply_clustering(
-                            binary_seg_result=temp,
+                            binary_seg_result=np.squeeze(temp),
                             instance_seg_result=embedding_result_predict[0])
 
                         ax3.imshow(mask)
+                        plt.show()
 
                     except Exception as ex:
-                        print("error occured")
+                        print("error occured:{0}", ex)
 
-                plt.show()
+        if epoch == (config_etc.TOTAL_EPOCH - 1):
+            # save model params.
+            saver.save(sess, '/data1/LJH/cvpppnet/saved_models/model')
