@@ -9,3 +9,4 @@ class BatchNorm:
         self.use_batch_norm = use_batch_norm
 
 
+

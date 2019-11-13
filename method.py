@@ -15,6 +15,7 @@ TYPE_ATROUS = 'atrous'
 FUNC_RELU = 'relu'
 NONE = 'none'
 
+# this color map is wrap the result of instance segmentation.
 color_map = [np.array([229, 43, 80]),
              np.array([255, 191, 0]),
              np.array([153, 102, 204]),
@@ -376,7 +377,7 @@ def _morphological_process(image, kernel_size=5):
 
     kernel = cv2.getStructuringElement(shape=cv2.MORPH_ELLIPSE, ksize=(kernel_size, kernel_size))
 
-    # close operation fille hole
+    # close operation file hole
     closing = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel, iterations=1)
 
     return closing

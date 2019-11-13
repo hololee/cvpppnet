@@ -10,12 +10,13 @@ import scipy.misc
 import datetime
 import time
 
-current_milli_time = lambda: int(round(time.time() * 1000))
+# calculate time for file name.
+# current_milli_time = lambda: int(round(time.time() * 1000))
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-## ready dataset .
+# ready dataset.
 dataG = DataGen()
 
 # loaded images numpy array.
@@ -31,7 +32,7 @@ print("rgb_images : " + str(np.shape(rgb_images)))
 print("fg_images : " + str(np.shape(fg_images)))
 print("ins_images : " + str(np.shape(ins_images)))
 
-# create input place hodler and apply.
+# create input place holder and apply.
 ph = placeHolders(input_images=rgb_images, input_labels=fg_images)
 
 ## network set.
@@ -39,14 +40,13 @@ num_classes = 1
 
 input = tf.zeros(shape=[10, 512, 512, 3])
 
-# ==== initial
+# POINT ==== initial Network.=====
 net = md.layer_Enet_initial(ph.input_data, name="initial")
 print(ph.input_data.get_shape())
 # net = md.layer_Enet_initial(input, name="initial")
 
-
-######################### Encoder Part ######################## conclude par1 & part2
-# ==== ver 1
+# POINT :######################## Encoder Part ######################## conclude par1 & part2
+# NOTICE ==== ver 1
 net = md.layer_enet_bottle_neck(net, layer_type={"ver": 1, "type": "regular", "down_sampling": True, "conv_size": 3,
                                                  "target_dim": 64, "projection_ratio": 4},
                                 training=ph.is_train, name="bottleneck1_0")
@@ -63,7 +63,7 @@ net = md.layer_enet_bottle_neck(net, layer_type={"ver": 1, "type": "regular", "d
                                                  "target_dim": 64, "projection_ratio": 4},
                                 training=ph.is_train, name="bottleneck1_4")
 
-# ==== ver 2
+# NOTICE ==== ver 2
 net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "regular", "down_sampling": True, "conv_size": 3,
                                                  "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
                                 name="bottleneck2_0")
@@ -98,7 +98,7 @@ net = md.layer_enet_bottle_neck(net, layer_type={"ver": 2, "type": "dilated", "d
                                 training=ph.is_train,
                                 name="bottleneck2_8")
 
-# ===============================================   Embedding branch   =================================================
+# POINT : branch 1 from the net. =============================   Embedding branch   ====================================
 embedding = md.layer_enet_bottle_neck(net,
                                       layer_type={"ver": 2, "type": "regular", "down_sampling": False, "conv_size": 3,
                                                   "target_dim": 128, "projection_ratio": 4}, training=ph.is_train,
@@ -139,7 +139,7 @@ embedding = md.layer_enet_bottle_neck(embedding,
                                                   "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
                                       training=ph.is_train,
                                       name="em_bottleneck3_8")
-# ==== ver 4
+# NOTICE ==== ver 4
 embedding = md.layer_enet_bottle_neck(embedding,
                                       layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False,
                                                   "conv_size": 3,
@@ -154,7 +154,7 @@ embedding = md.layer_enet_bottle_neck(embedding,
                                                   "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
                                       name="em_bottleneck4_2")
 
-# ==== ver 5
+# NOTICE ==== ver 5
 embedding = md.layer_enet_bottle_neck(embedding,
                                       layer_type={"ver": 5, "type": "transpose_conv", "down_sampling": False,
                                                   "conv_size": 3,
@@ -172,7 +172,7 @@ embedding = md.layer_enet_bottle_neck(embedding,
                                                   "target_dim": 2, "projection_ratio": 4}, training=ph.is_train,
                                       name="em_full_conv")
 
-# ===============================================   Segmentation branch   ==============================================
+# POINT : branch 2 from the net. ============================   Segmentation branch   ===================================
 segmentation = md.layer_enet_bottle_neck(net,
                                          layer_type={"ver": 2, "type": "regular", "down_sampling": False,
                                                      "conv_size": 3,
@@ -221,7 +221,7 @@ segmentation = md.layer_enet_bottle_neck(segmentation,
                                                      "target_dim": 128, "projection_ratio": 4, "dilated_rate": 16},
                                          training=ph.is_train,
                                          name="seg_bottleneck3_8")
-# ==== ver 4
+# NOTICE ==== ver 4
 segmentation = md.layer_enet_bottle_neck(segmentation,
                                          layer_type={"ver": 4, "type": "transpose_conv", "down_sampling": False,
                                                      "conv_size": 3,
@@ -238,7 +238,7 @@ segmentation = md.layer_enet_bottle_neck(segmentation,
                                                      "target_dim": 64, "projection_ratio": 4}, training=ph.is_train,
                                          name="seg_bottleneck4_2")
 
-# ==== ver 5
+# NOTICE ==== ver 5
 segmentation = md.layer_enet_bottle_neck(segmentation,
                                          layer_type={"ver": 5, "type": "transpose_conv", "down_sampling": False,
                                                      "conv_size": 3,
@@ -260,15 +260,16 @@ segmentation = md.layer_enet_bottle_neck(segmentation,
 
 # ======================================= End seg======================================================================
 
+# POINT : output of the each branch.
 # predict
 predict_images = segmentation
 embedding_outputs = embedding
 
-##########===============================   Calculate segmentation loss  =======================================########
+# POINT ##===============================   Calculate segmentation loss  =======================================########
 
 # loss
 # (batch_size, num_classes)
-# num_classes = 2 : background, plant TODO: one-hot encode to image.
+# num_classes = 2 : background, plant NOTICE: one-hot encode to image.
 flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 1))
 flat_labels = tf.reshape(tensor=ph.ground_truth, shape=(-1, 1))
 # flat_logits = tf.reshape(tensor=predict_images, shape=(-1, 2))
@@ -283,7 +284,8 @@ seg_cross_entropies = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(flat_labels, 
 
 # seg_optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(seg_cross_entropies)
 
-##########===============================   Calculate embedding loss  ==========================================########
+
+# POINT ##===============================   Calculate embedding loss  ==========================================########
 
 print("shape : {}".format(embedding_outputs.get_shape()))
 
@@ -294,15 +296,14 @@ instance_segmentation_loss, l_var, l_dist, l_reg = md.discriminative_loss(
     pix_image_shape, 0.5, 3.0, 1.0, 1.0, 0.001
 )
 
-#########================================= Calculate total loss =================================================#######
+# POINT #================================= Calculate total loss =================================================#######
 
 total_loss = seg_cross_entropies + instance_segmentation_loss
 optimizer = tf.train.AdamOptimizer(learning_rate=ph.learning_rate).minimize(total_loss)
 
-#########================================= Train two network.===================================================########
+# POINT ##================================= Train two network.===================================================#######
 
-
-# train
+# counts iteration.
 BATCH_COUNT = dataG.getTotalNumber() // config_etc.BATCH_SIZE
 
 # saver.
@@ -338,19 +339,19 @@ with tf.Session() as sess:
             embedding_result_predict = sess.run(embedding_outputs,
                                                 feed_dict={ph.input_data: batch_x, ph.is_train: False})
 
-            # embedding
+            # save the result of semantic segmentation at last epoch.
             if epoch == (config_etc.TOTAL_EPOCH - 1):
                 for index, image in enumerate(image_result_predict):
                     # save image.
-                    suffix = current_milli_time()
                     scipy.misc.imsave(
-                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, suffix),
+                        '/data1/LJH/cvpppnet/A1_predict_enet/plant_out_epc{}_{}.png'.format(epoch + 1, index),
                         np.squeeze(image))
 
+                # save model params.
                 saver.save(sess, '/data1/LJH/cvpppnet/saved_models/model')
 
+            # calculate loss.
             if batch_count % 8 == 0:
-                # calculate loss.
                 total_loss_val = sess.run(total_loss, feed_dict={ph.input_data: batch_x,
                                                                  ph.ins_label: batch_z,
                                                                  ph.ground_truth: batch_y,
